@@ -1,0 +1,27 @@
+{
+  "editor.rulers": [150],
+  "editor.tabCompletion": "on",
+  "editor.useTabStops": false,
+  "editor.trimAutoWhitespace": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": true,
+    "source.fixAll.eslint": true
+  },
+  "eslint.format.enable": false,
+  "files.eol": "\n",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.minimap.maxColumn": 150,
+  "html.format.wrapLineLength": 150,
+  "cSpell.words": ["reduxjs"],
+  "editor.tabSize": 2,
+  "typescript.tsdk": "./node_modules/typescript/lib",
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+  "typescript.preferences.quoteStyle": "single",
+  "eslint.run": "onSave",
+  "eslint.nodePath": "./node_modules",
+  "eslint.validate": ["javascript", "typescript"]
+}
