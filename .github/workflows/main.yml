@@ -1,0 +1,63 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI-Staging
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: ['main']
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "compose"
+  compose:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    environment: staging
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      - name: Setup docker
+        run: sudo printf '{\n"composeV2":"enabled"\n}' > "$HOME/.docker/features.json" &&
+          sudo mkdir -p ~/.docker/cli-plugins/ &&
+          sudo curl -SL https://github.com/docker/compose/releases/download/v2.5.0/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose &&
+          sudo chmod +x ~/.docker/cli-plugins/docker-compose
+
+      - name: Mount ram disk
+        run: sudo mkdir /mnt/ramdisk &&
+          mkdir -p "$HOME/.ssh" &&
+          sudo mount -t tmpfs -o rw,size=1M tmpfs /mnt/ramdisk &&
+          sudo mount -t tmpfs -o rw,size=1M tmpfs "$HOME/.ssh"
+
+      - name: Make .env file
+        run: echo "${{ secrets.ENVIRONMENT_VARIABLES }}">"/mnt/ramdisk/docker.env" &&
+          sudo chmod --recursive 777 ./ &&
+          sudo chown --recursive root:root *
+
+      - name: Setup SSH
+        run: printf '%s\n' "${{ secrets.DOCKER_SSH_PRIVATE_KEY }}" > "$HOME/.ssh/id_rsa" &&
+          chmod 600 "$HOME/.ssh/id_rsa" &&
+          eval $(ssh-agent) &&
+          ssh-add "$HOME/.ssh/id_rsa"
+
+      - name: Setup SSH known hosts
+        run: sudo chmod 777 /etc/ssh/ssh_known_hosts &&
+          printf '%s %s\n' "$SSH_HOST" "${{ secrets.DOCKER_SSH_KNOWN_HOSTS }}" > /etc/ssh/ssh_known_hosts
+
+      - name: Set docker context
+        run: docker context create remote --docker "host=ssh://${{ secrets.DOCKER_SSH_HOST }}" &&
+          docker context use remote
+
+      - name: Docker Deployment
+        run: docker compose -p itunes-backend --env-file /mnt/ramdisk/docker.env up --build -d
+
+      - name: Unmount ram disk
+        if: always()
+        run: sudo umount /mnt/ramdisk &&
+          sudo umount "$HOME/.ssh"
